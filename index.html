@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>现代 To-Do List 应用</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Font Awesome 图标库 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Tailwind 配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4F46E5', // 主色调：靛蓝色
+                        secondary: '#10B981', // 辅助色：绿色
+                        danger: '#EF4444', // 危险色：红色
+                        warning: '#F59E0B', // 警告色：橙色
+                        dark: '#1F2937', // 深色
+                        light: '#F3F4F6', // 浅色
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'card': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                        'card-hover': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                    }
+                },
+            }
+        }
+    </script>
+    <!-- 自定义工具类 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            .task-transition {
+                transition: all 0.3s ease;
+            }
+        }
+    </style>
+    <style>
+        /* 基础样式 */
+        body {
+            background-color: #F9FAFB;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+        
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c5c5c5;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a0a0a0;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-light to-white font-inter text-dark">
+    <div class="container mx-auto px-4 py-8 max-w-3xl">
+        <!-- 应用头部 -->
+        <header class="text-center mb-10 animate-fadeIn">
+            <h1 class="text-[clamp(2rem,5vw,3rem)] font-bold text-primary mb-2 text-shadow">
+                <i class="fa fa-check-circle-o mr-2"></i>任务清单
+            </h1>
+            <p class="text-gray-500 text-lg">让每一天都更高效</p>
+        </header>
+
+        <!-- 主要内容区 -->
+        <main class="bg-white rounded-2xl shadow-card p-6 mb-8 transition-all duration-300 hover:shadow-card-hover">
+            <!-- 添加任务表单 -->
+            <form id="addTaskForm" class="mb-6 flex gap-2">
+                <div class="relative flex-grow">
+                    <input
+                        type="text"
+                        id="taskInput"
+                        placeholder="添加新任务..."
+                        class="w-full px-4 py-3 pl-12 rounded-lg border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all duration-200"
+                        required
+                    >
+                    <i class="fa fa-pencil absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                </div>
+                <select id="taskPriority" class="px-4 py-3 rounded-lg border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all duration-200">
+                    <option value="low">低优先级</option>
+                    <option value="medium" selected>中优先级</option>
+                    <option value="high">高优先级</option>
+                </select>
+                <button
+                    type="submit"
+                    class="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center whitespace-nowrap"
+                >
+                    <i class="fa fa-plus mr-2"></i>添加任务
+                </button>
+            </form>
+
+            <!-- 任务过滤 -->
+            <div class="flex flex-wrap items-center justify-between mb-6 gap-4">
+                <div class="flex items-center gap-2">
+                    <button
+                        id="filterAll"
+                        class="filter-btn active px-4 py-2 rounded-lg bg-primary text-white transition-all duration-200"
+                    >
+                        全部任务
+                    </button>
+                    <button
+                        id="filterActive"
+                        class="filter-btn px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-all duration-200"
+                    >
+                        未完成
+                    </button>
+                    <button
+                        id="filterCompleted"
+                        class="filter-btn px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-all duration-200"
+                    >
+                        已完成
+                    </button>
+                </div>
+                <button
+                    id="clearCompleted"
+                    class="px-4 py-2 rounded-lg bg-danger/10 text-danger hover:bg-danger/20 transition-all duration-200"
+                    disabled
+                >
+                    <i class="fa fa-trash mr-1"></i>清除已完成
+                </button>
+            </div>
+
+            <!-- 任务列表 -->
+            <div id="taskList" class="space-y-3 max-h-[500px] overflow-y-auto">
+                <!-- 初始提示信息 -->
+                <div id="emptyState" class="text-center py-16">
+                    <div class="mb-4 text-6xl text-gray-300">
+                        <i class="fa fa-tasks"></i>
+                    </div>
+                    <h3 class="text-xl font-medium text-gray-500 mb-2">暂无任务</h3>
+                    <p class="text-gray-400">添加你的第一个任务，开始高效的一天吧！</p>
+                </div>
+                <!-- 任务项将通过 JavaScript 动态生成 -->
+            </div>
+        </main>
+
+        <!-- 页脚 -->
+        <footer class="text-center text-gray-500 text-sm py-4">
+            <p>&copy; 2023 高效任务清单 | 使用现代 Web 技术构建</p>
+        </footer>
+    </div>
+
+    <!-- JavaScript 脚本 -->
+    <script src="app.js"></script>
+</body>
+</html>
